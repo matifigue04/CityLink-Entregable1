@@ -103,4 +103,7 @@ public abstract class Pedido implements Rastreable, Facturable {
     public double getPesoKg() { return pesoKg; }
     public double getDistanciaKm() { return distanciaKm; }
     public Cliente getCliente() { return cliente; }
+
+    public String getDestino() { return destino; }
+    public LocalDateTime getFechaHora() { return fechaHora; }
 }
