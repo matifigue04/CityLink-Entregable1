@@ -4,7 +4,17 @@ import java.util.Scanner;
 import modelo.*;
 import excepciones.*;
 
+/**
+ * Clase principal que actúa como Vista (Consola).
+ * Se encarga puramente de la interacción con el usuario, captura de teclado
+ * y propagación estructurada de errores. No contiene reglas de negocio.
+ */
 public class Main {
+    
+    /**
+     * Punto de entrada principal (Entry point) de la máquina virtual de Java.
+     * @param args Argumentos de la línea de comandos (No utilizados).
+     */
     public static void main(String[] args) {
         CityLink gestor = new CityLink();
         Scanner sc = new Scanner(System.in);
@@ -24,7 +34,10 @@ public class Main {
             System.out.println("10. Salir");
             System.out.print("Elija una opción: ");
 
+            // Bloque global TRY-CATCH-FINALLY (Exigencia técnica)
+            // Asegura que excepciones inesperadas o errores de tipado no colapsen la consola.
             try {
+                // Se lee como String y se parsea. Evita bucles infinitos de la clase Scanner si meten letras.
                 opcion = Integer.parseInt(sc.nextLine());
 
                 switch (opcion) {
@@ -37,8 +50,9 @@ public class Main {
                         String telCli = sc.nextLine();
                         System.out.print("Zona: ");
                         String zonaCli = sc.nextLine();
+                        
                         gestor.registrarCliente(new Cliente(codCli, nomCli, telCli, zonaCli));
-                        System.out.println("Cliente registrado.");
+                        System.out.println("Cliente registrado exitosamente.");
                         break;
 
                     case 2:
@@ -51,6 +65,7 @@ public class Main {
                         System.out.print("Patente: ");
                         String patente = sc.nextLine();
                         
+                        // Creación polimórfica del vehículo
                         Vehiculo v;
                         if (tipoVehiculo == 1) v = new Bicicleta(patente);
                         else if (tipoVehiculo == 2) v = new Moto(patente);
@@ -65,35 +80,38 @@ public class Main {
                         int tipoPed = Integer.parseInt(sc.nextLine());
                         System.out.print("Código del pedido (ej. P10): ");
                         String codPed = sc.nextLine();
-                        System.out.print("Código del cliente que lo solicita: ");
+                        System.out.print("Código del cliente solicitante (1-5 precargados): ");
                         int idCli = Integer.parseInt(sc.nextLine());
                         
-                        // Si el cliente no existe, buscarCliente lanza la excepción y corta la operación
+                        // Si no se encuentra, salta al CATCH y frena el alta automáticamente
                         Cliente clientePedido = gestor.buscarCliente(idCli); 
                         
                         System.out.print("Destino: ");
                         String destino = sc.nextLine();
-                        System.out.print("Peso en kg: ");
+                        System.out.print("Peso total en kg: ");
                         double peso = Double.parseDouble(sc.nextLine());
-                        System.out.print("Distancia en km: ");
+                        System.out.print("Distancia calculada en km: ");
                         double distancia = Double.parseDouble(sc.nextLine());
                         
+                        // Polimorfismo de jerarquía: Variable base apuntando a hijos distintos
                         Pedido nuevoPedido;
                         if (tipoPed == 1) nuevoPedido = new PedidoNormal(codPed, clientePedido, destino, peso, distancia);
                         else if (tipoPed == 2) nuevoPedido = new PedidoUrgente(codPed, clientePedido, destino, peso, distancia);
                         else nuevoPedido = new PedidoFragil(codPed, clientePedido, destino, peso, distancia);
                         
                         gestor.registrarPedido(nuevoPedido);
-                        System.out.println("Pedido registrado.");
+                        System.out.println("Pedido registrado con estado inicial PENDIENTE.");
                         break;
 
                     case 4:
                         System.out.print("Ingrese código del pedido (ej: P01): ");
                         String cod = sc.nextLine();
-                        System.out.print("Ingrese legajo del repartidor: ");
+                        System.out.print("Ingrese legajo del repartidor (ej: 101): ");
                         int legajo = Integer.parseInt(sc.nextLine());
+                        
+                        // El gestor delega en los objetos validar pesos y lanzar excepciones (CapacidadExcedidaException)
                         gestor.asignarPedidoAlRepartidor(cod, legajo);
-                        System.out.println("Pedido asignado con éxito.");
+                        System.out.println("El pedido ha sido cargado en el vehículo con éxito.");
                         break;
 
                     case 5:
@@ -101,10 +119,12 @@ public class Main {
                         String codEst = sc.nextLine();
                         System.out.print("Nuevo estado (EN_CAMINO, ENTREGADO, CANCELADO): ");
                         String estado = sc.nextLine();
-                        gestor.cambiarEstadoPedido(codEst, estado);
-                        System.out.println("Estado actualizado.");
                         
-                        // Si el estado es ENTREGADO, le indicamos al repartidor que registre su entrega para cobrar comisión
+                        // Lanza EstadoInvalidoException (RuntimeException) si rompe el flujo estricto
+                        gestor.cambiarEstadoPedido(codEst, estado);
+                        System.out.println("Actualización de tracking exitosa.");
+                        
+                        // Operación acoplada: Si se entregó, el repartidor cobra la comisión
                         if (estado.equalsIgnoreCase("ENTREGADO")) {
                             for (int i = 0; i < gestor.getCantRepartidores(); i++) {
                                 gestor.getRepartidores()[i].registrarEntrega(codEst);
@@ -113,23 +133,26 @@ public class Main {
                         break;
 
                     case 6:
-                        System.out.print("Buscar por (1: Código, 2: Nombre): ");
+                        System.out.print("Seleccione método de búsqueda (1: Por Código entero, 2: Por Nombre exacto): ");
                         int tipoBusqueda = Integer.parseInt(sc.nextLine());
+                        
+                        // Demostración práctica de la SOBRECARGA de métodos (Requisito E1)
                         if (tipoBusqueda == 1) {
-                            System.out.print("Ingrese código: ");
+                            System.out.print("Código: ");
                             System.out.println(gestor.buscarCliente(Integer.parseInt(sc.nextLine())));
                         } else {
-                            System.out.print("Ingrese nombre: ");
+                            System.out.print("Nombre: ");
                             System.out.println(gestor.buscarCliente(sc.nextLine()));
                         }
                         break;
 
                     case 7:
+                        // Listado polimórfico iterando los arreglos base. Muestra costo calculado y tiempo estimado.
                         gestor.listarPedidos();
                         break;
 
                     case 8:
-                        System.out.print("Consultar estado de (1: Pedido, 2: Repartidor): ");
+                        System.out.print("Consultar auditoría de estado (1: Pedido, 2: Repartidor): ");
                         int tipoCons = Integer.parseInt(sc.nextLine());
                         boolean encontrado = false;
                         
@@ -138,62 +161,70 @@ public class Main {
                             String cp = sc.nextLine();
                             for (int i = 0; i < gestor.getCantPedidos(); i++) {
                                 if (gestor.getPedidos()[i].getCodigo().equalsIgnoreCase(cp)) {
-                                    // Demostración de Polimorfismo con la Interfaz Rastreable
+                                    // Demostración: Tratar un Pedido exclusivamente bajo el lente de Rastreable
                                     Rastreable r = gestor.getPedidos()[i];
-                                    System.out.println("Estado (Rastreable): " + r.obtenerEstadoActual());
+                                    System.out.println("Respuesta del sensor (Rastreable): " + r.obtenerEstadoActual());
                                     encontrado = true; 
                                     break;
                                 }
                             }
                         } else {
-                            System.out.print("Legajo del repartidor: ");
+                            System.out.print("Legajo del operario: ");
                             int lr = Integer.parseInt(sc.nextLine());
                             for (int i = 0; i < gestor.getCantRepartidores(); i++) {
                                 if (gestor.getRepartidores()[i].getLegajo() == lr) {
-                                    // Demostración de Polimorfismo con la Interfaz Rastreable
+                                    // Demostración: Tratar un Repartidor exclusivamente bajo el lente de Rastreable
                                     Rastreable r = gestor.getRepartidores()[i];
-                                    System.out.println("Estado (Rastreable): " + r.obtenerEstadoActual());
+                                    System.out.println("Respuesta del sensor (Rastreable): " + r.obtenerEstadoActual());
                                     encontrado = true; 
                                     break;
                                 }
                             }
                         }
-                        if (!encontrado) System.out.println("No se encontró el elemento.");
+                        if (!encontrado) System.out.println("No se encontró el elemento en los registros.");
                         break;
 
                     case 9:
                         double totalPedidos = 0;
-                        System.out.println("\n--- Importes (Uso de interfaz Facturable) ---");
+                        System.out.println("\n--- Auditoría Financiera (Polimorfismo con interfaz Facturable) ---");
                         
                         for (int i = 0; i < gestor.getCantPedidos(); i++) {
-                            // Demostración de Polimorfismo con la Interfaz Facturable
-                            Facturable f = gestor.getPedidos()[i];
+                            Facturable f = gestor.getPedidos()[i]; // Tratar pedido como Facturable
                             totalPedidos += f.calcularImporte();
                         }
-                        System.out.println("Importe total de todos los pedidos registrados: $" + totalPedidos);
+                        System.out.println(">> Total de ingresos brutos proyectados por envíos: $" + totalPedidos);
                         
-                        System.out.println("Comisiones acumuladas (10% de lo entregado) por repartidor:");
+                        System.out.println("\nDesglose de comisiones operativas (10% de lo entregado):");
                         for (int i = 0; i < gestor.getCantRepartidores(); i++) {
-                            Facturable f = gestor.getRepartidores()[i];
+                            Facturable f = gestor.getRepartidores()[i]; // Tratar repartidor como Facturable
                             System.out.println("- " + gestor.getRepartidores()[i].getNombre() + ": $" + f.calcularImporte());
                         }
                         break;
 
                     case 10:
-                        System.out.println("Cerrando el sistema CityLink...");
+                        System.out.println("Apagando módulos y guardando variables... Cerrando CityLink.");
                         break;
 
                     default:
-                        System.out.println("Opción inválida. Intente de nuevo.");
+                        System.out.println("Opción fuera de rango. Por favor, introduzca un número del 1 al 10.");
                 }
+                
+            // === CAPTURA DE EXCEPCIONES Y PROPAGACIÓN (Requisito E1) ===
             } catch (NumberFormatException e) {
-                System.out.println("Error: Ingrese un valor numérico válido.");
-            } catch (CapacidadExcedidaException | PedidoInvalidoException | ClienteNoEncontradoException | EstadoInvalidoException | AlmacenamientoLlenoException e) {
-                System.out.println("Error de negocio: " + e.getMessage());
+                // Captura el ingreso de letras donde va un entero sin cortar el programa
+                System.out.println("ERROR DE FORMATO: Ingrese un valor numérico válido, no texto.");
+            } catch (CapacidadExcedidaException | PedidoInvalidoException | ClienteNoEncontradoException | AlmacenamientoLlenoException e) {
+                // Bloque multicatch atrapando los errores propios heredados de Exception (Checked)
+                System.out.println("VIOLACIÓN DE NEGOCIO: " + e.getMessage());
+            } catch (EstadoInvalidoException e) {
+                // Atrapa el error lógico de transición de estados (Unchecked)
+                System.out.println("ERROR LÓGICO DE SISTEMA: " + e.getMessage());
             } catch (Exception e) {
-                System.out.println("Error inesperado: " + e.getMessage());
+                // Atrapa errores no contemplados que de otra forma crashearían la JVM
+                System.out.println("FALLA INESPERADA CRÍTICA: " + e.getMessage());
             } finally {
-                System.out.println("[Operación finalizada]");
+                // Bloque obligatorio: se ejecuta sí o sí al final de cada iteración del menú
+                System.out.println("[Transacción finalizada]");
             }
         } while (opcion != 10);
         
